@@ -1,0 +1,5 @@
+# Runtime dependencies for s3-guard.
+# For development/testing extras (pytest, moto) install with:  pip install -e ".[dev]"
+boto3>=1.34
+typer>=0.12
+rich>=13.7
