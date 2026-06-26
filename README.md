@@ -50,6 +50,7 @@ Each layer has one job and doesn't know about the others. This is what keeps the
 Every check either returns `None` (bucket is fine) or a `Finding`:
 
 ```python
+# checks.py — the data structure every check returns when it finds a problem
 @dataclass
 class Finding:
     bucket: str       # which bucket
@@ -137,6 +138,7 @@ The summary panel below the table turns **red** if any findings exist, **green**
 ## Install
 
 ```bash
+# clone the repo and install s3-guard as a CLI command
 git clone https://github.com/Mide69/s3-guard.git
 cd s3-guard
 pip install -e .
@@ -149,30 +151,35 @@ pip install -e .
 Scan every bucket in your account:
 
 ```bash
+# auditor.py calls ListBuckets then runs all 4 checks against every bucket it finds
 s3-guard scan
 ```
 
 Scan specific buckets:
 
 ```bash
+# skips ListBuckets — auditor.py runs checks only against the buckets you name
 s3-guard scan -b my-bucket -b another-bucket
 ```
 
 Use a named AWS profile and region:
 
 ```bash
+# cli.py passes the profile to boto3 — credentials are loaded from ~/.aws/config
 s3-guard scan --profile prod --region eu-west-2
 ```
 
 JSON output for pipelines and dashboards:
 
 ```bash
+# cli.py skips the Rich table and prints raw JSON — one object per Finding
 s3-guard scan --json
 ```
 
 Fail a CI build on critical findings only:
 
 ```bash
+# cli.py exits with code 1 if any Finding severity >= CRITICAL — gates the pipeline
 s3-guard scan --fail-level CRITICAL
 ```
 
@@ -187,10 +194,11 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full walkthrough.
 Quick version:
 
 ```bash
+# provision 20 misconfigured S3 buckets, then run s3-guard against all of them
 cd terraform
 terraform init
 terraform apply
-eval $(terraform output -raw scan_command)   # bash
+eval $(terraform output -raw scan_command)
 ```
 
 | Bucket | Issues introduced | Expected findings |
@@ -215,6 +223,7 @@ eval $(terraform output -raw scan_command)   # bash
 1. Write a function in `checks.py`:
 
 ```python
+# checks.py — a new check function; asks AWS one question, returns a Finding or None
 def check_mfa_delete(client, bucket: str) -> Optional[Finding]:
     resp = client.get_bucket_versioning(Bucket=bucket)
     if resp.get("MFADelete") == "Enabled":
@@ -231,6 +240,7 @@ def check_mfa_delete(client, bucket: str) -> Optional[Finding]:
 2. Add it to `ALL_CHECKS` in `checks.py`:
 
 ```python
+# checks.py — register the new check; auditor.py picks it up automatically on next run
 ALL_CHECKS: list[Check] = [
     check_public_access,
     check_encryption,
@@ -247,6 +257,7 @@ That's it. The auditor picks it up automatically on the next run.
 ## Run the tests
 
 ```bash
+# install dev dependencies (pytest + moto) and run the full test suite locally
 pip install -e ".[dev]"
 pytest
 ```
